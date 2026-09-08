@@ -1,0 +1,8 @@
+# Godot 4+ editor cache and imported assets.
+.godot/
+
+# Exported builds (web bundle, dedicated server binary).
+build/
+
+# macOS.
+.DS_Store

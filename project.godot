@@ -18,6 +18,10 @@ run/main_scene="res://car_select/car_select.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.webp"
 
+[autoload]
+
+Net="*res://net/net.gd"
+
 [debug]
 
 gdscript/warnings/untyped_declaration=1

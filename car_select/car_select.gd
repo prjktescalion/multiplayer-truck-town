@@ -4,20 +4,27 @@ var audio_master: int = AudioServer.get_bus_index("Master")
 
 @onready var car_container: HBoxContainer = %CarContainer
 
-@onready var button_sunrise: CheckBox = %Sunrise
-@onready var button_day: CheckBox = %Day
-@onready var button_sunset: CheckBox = %Sunset
-@onready var button_night: CheckBox = %Night
-
-@onready var button_sdfgi: CheckBox = $%SDFGI
+@onready var button_sdfgi: CheckBox = %SDFGI
 @onready var button_mute: TextureButton = %Mute
 @onready var slider_volume: HSlider = %Volume
 
 @onready var loading_screen: PanelContainer = %LoadingPanel
+@onready var status_label: Label = %LoadingPanel/CenterContainer/Label
 
-var town: Node3D = null
 
 func _ready() -> void:
+	if Net.is_dedicated_server:
+		# No menu, no player: this process only relays truck state.
+		hide()
+		return
+
+	Net.joined.connect(_on_joined)
+	Net.disconnected.connect(_on_disconnected)
+
+	# Time of day is shared between all players now, so it can't be chosen before joining.
+	# Players cycle it in-game instead, which changes it for everyone.
+	$MoodPanel.hide()
+
 	# Automatically focus the first item for gamepad accessibility.
 	focus_first_car()
 
@@ -29,61 +36,55 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if Input.is_action_just_pressed(&"back"):
-		_on_back_pressed()
+	if visible and Input.is_action_just_pressed(&"back"):
+		get_tree().quit()
 
 
 func focus_first_car() -> void:
 	car_container.get_child(0).grab_focus.call_deferred()
 
 
-func _load_scene(car_scene: PackedScene) -> void:
+func _join(vehicle_index: int) -> void:
+	Net.local_sdfgi = button_sdfgi.button_pressed
+
 	# Show loading screen and wait for it to be rendered
 	loading_screen.visible = true
+	status_label.text = "Connecting..."
 	await RenderingServer.frame_post_draw
 
-	var car: Node3D = car_scene.instantiate()
-	car.name = "car"
-	town = preload("res://town/town_scene.tscn").instantiate()
+	var url := Net.default_server_url()
+	if url.is_empty():
+		status_label.text = "No server configured.\nAdd ?server=wss://... to the URL."
+		return
 
-	if button_sunrise.button_pressed:
-		town.mood = town.Mood.SUNRISE
-	elif button_day.button_pressed:
-		town.mood = town.Mood.DAY
-	elif button_sunset.button_pressed:
-		town.mood = town.Mood.SUNSET
-	elif button_night.button_pressed:
-		town.mood = town.Mood.NIGHT
+	Net.join(url, "Player", vehicle_index)
 
-	town.setup(car, _on_back_pressed, button_sdfgi.button_pressed)
 
-	get_parent().add_child(town)
+func _on_joined() -> void:
 	hide()
 
 
-func _on_back_pressed() -> void:
-	if is_instance_valid(town):
-		# Currently in the town, go back to main menu.
-		town.queue_free()
+func _on_disconnected(reason: String) -> void:
+	show()
+	focus_first_car()
+	if reason.is_empty():
+		# We asked to leave, rather than something going wrong.
 		loading_screen.visible = false
-		show()
-		# Automatically focus the first item for gamepad accessibility.
-		focus_first_car()
 	else:
-		# In main menu, exit the game.
-		get_tree().quit()
+		loading_screen.visible = true
+		status_label.text = reason
 
 
 func _on_mini_van_pressed() -> void:
-	_load_scene(preload("res://vehicles/car_base.tscn"))
+	_join(0)
 
 
 func _on_trailer_truck_pressed() -> void:
-	_load_scene(preload("res://vehicles/trailer_truck.tscn"))
+	_join(1)
 
 
 func _on_tow_truck_pressed() -> void:
-	_load_scene(preload("res://vehicles/tow_truck.tscn"))
+	_join(2)
 
 
 func _on_mute_toggled(muted: bool) -> void:

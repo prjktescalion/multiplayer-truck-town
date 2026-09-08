@@ -12,6 +12,10 @@ var car_body: VehicleBody3D
 @export var speed_unit: SpeedUnit = SpeedUnit.METERS_PER_SECOND
 
 func _process(_delta: float) -> void:
+	if car_body == null:
+		# No truck to report on yet: still connecting, or this is the dedicated server.
+		return
+
 	var speed := car_body.linear_velocity.length()
 	if speed_unit == SpeedUnit.METERS_PER_SECOND:
 		text = "Speed: " + ("%.1f" % speed) + " m/s"

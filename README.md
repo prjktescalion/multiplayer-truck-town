@@ -187,3 +187,7 @@ godot-demo-projects, MIT licensed.
 
 - [tree low-poly](https://sketchfab.com/3d-models/tree-low-poly-4cd243eb74c74b3ea2190ebcec0439fb) by Ricardo Sanchez (https://sketchfab.com/380660711785)
 - [Lowpoly lamp](https://sketchfab.com/3d-models/lowpoly-lamp-c020f6af78f7482f8cf2ac84d05c08a5) by RitiWox (https://sketchfab.com/RitiWox)
+
+### Screenshot
+
+<img width="2330" height="1231" alt="Screenshot 2026-09-08 at 15 46 16" src="https://github.com/user-attachments/assets/b5660e9b-c2e5-4e28-a28f-a21633612245" />

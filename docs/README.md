@@ -5,6 +5,7 @@ turned out to be traps. Written for club members who want to read the code and c
 
 | Document | Covers |
 |---|---|
+| **[00-godot-multiplayer-for-dummies.md](00-godot-multiplayer-for-dummies.md)** | **Start here.** General Godot multiplayer guide: what the engine gives you free, what you must write, the decisions that matter, and the mistakes everyone makes. No networking knowledge assumed |
 | [01-architecture.md](01-architecture.md) | The authority model, node topology, and why the server simulates nothing |
 | [02-join-flow.md](02-join-flow.md) | A line-by-line trace of what happens when someone joins, spawns, and leaves |
 | [03-changes-from-single-player.md](03-changes-from-single-player.md) | Every change to the original demo and the reason for it |

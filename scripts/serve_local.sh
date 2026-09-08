@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Offline fallback for the table: serves the web build over plain HTTP on the local network.
-# Pair it with a local server process:
-#   /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --server
+# Serves the web build for local browser testing.
 #
-# Phones reach the game server automatically, because the page tells them to connect back to
-# whichever host served it. This needs a network without client isolation, so use a travel
-# router or a phone hotspot rather than campus WiFi.
+# Open the printed http://localhost URL. Godot's web runtime requires a secure context, and only
+# HTTPS, localhost and 127.0.0.1 qualify -- a LAN IP over plain HTTP will fail with
+# "Secure Context - Check web server config (use HTTPS)". Phones therefore cannot use this script;
+# deploy to Vercel + Fly, or expose it over HTTPS with a tunnel. See the README.
+#
+# Pair it with a relay server:
+#   /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --server
 set -euo pipefail
 
 PORT="${PORT:-8080}"
@@ -16,8 +18,7 @@ if [ ! -f build/web/index.html ]; then
 	exit 1
 fi
 
-IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo 127.0.0.1)"
-echo "Serving on http://$IP:$PORT  <- point the QR code here"
+echo "Open http://localhost:$PORT  (localhost only -- see the note in this script)"
 echo
 
 cd build/web

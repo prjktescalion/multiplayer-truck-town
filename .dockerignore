@@ -1,0 +1,3 @@
+# Only the exported server binary is needed in the image.
+*
+!build/server/

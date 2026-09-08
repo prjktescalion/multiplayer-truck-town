@@ -68,6 +68,14 @@ func _ready() -> void:
 		is_dedicated_server = true
 		_server_port = _parse_port(args)
 		_start_dedicated_server.call_deferred()
+	elif "--client" in args:
+		# Skip the menu and join straight away. Handy for testing, and for launching a second
+		# window on the same machine.
+		_autojoin.call_deferred(_parse_int_arg(args, "--truck=", 0))
+
+
+func _autojoin(vehicle: int) -> void:
+	join(default_server_url(), local_player_name, vehicle)
 
 
 ## Resolves the address a client should connect to, in priority order:
@@ -167,6 +175,7 @@ func _on_peer_disconnected(id: int) -> void:
 	players.erase(id)
 	if _town != null:
 		_town.despawn_vehicle(id)
+	print("Peer %d left. Players: %d" % [id, players.size()])
 	players_changed.emit()
 
 
@@ -207,14 +216,22 @@ func _register(player_name: String, vehicle: int) -> void:
 		_town.spawn_vehicle(id, players[id]["vehicle"])
 		# Bring the newcomer's sky in line with everyone else's.
 		_town.apply_mood.rpc_id(id, _town.mood)
+
+	print("Peer %d joined as %s (truck %d). Players: %d" % [
+		id, players[id]["name"], players[id]["vehicle"], players.size(),
+	])
 	players_changed.emit()
 
 
 func _parse_port(args: PackedStringArray) -> int:
+	return _parse_int_arg(args, "--port=", DEFAULT_PORT)
+
+
+func _parse_int_arg(args: PackedStringArray, prefix: String, fallback: int) -> int:
 	for arg in args:
-		if arg.begins_with("--port="):
-			return arg.trim_prefix("--port=").to_int()
-	return DEFAULT_PORT
+		if arg.begins_with(prefix):
+			return arg.trim_prefix(prefix).to_int()
+	return fallback
 
 
 func _query_value(query: String, key: String) -> String:

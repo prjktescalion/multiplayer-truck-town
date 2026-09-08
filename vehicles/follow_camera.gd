@@ -34,6 +34,15 @@ enum CameraType {
 }
 
 func _ready() -> void:
+	# Only the local player's truck owns the view. Other players' trucks carry an identical camera,
+	# so without this the last truck to spawn would steal the viewport.
+	if not is_multiplayer_authority():
+		current = false
+		set_process_input(false)
+		set_physics_process(false)
+		return
+
+	current = true
 	update_camera()
 
 

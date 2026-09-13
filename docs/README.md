@@ -11,6 +11,7 @@ turned out to be traps. Written for club members who want to read the code and c
 | [03-changes-from-single-player.md](03-changes-from-single-player.md) | Every change to the original demo and the reason for it |
 | [04-web-export-and-hosting.md](04-web-export-and-hosting.md) | The secure-context requirement, export settings, build sizes, deployment |
 | [05-gotchas-and-verification.md](05-gotchas-and-verification.md) | Errors hit along the way, and how replication was actually proven to work |
+| **[hosting/](hosting/README.md)** | Putting it on a network people can join from: certificates, DNS, the campus box, and how to take it all down again |
 
 ## The 60-second version
 

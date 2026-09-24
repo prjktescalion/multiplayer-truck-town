@@ -66,15 +66,28 @@ jobs:
           mv templates "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
 
       # The relay URL is compiled into the .pck, so it has to be set before the export.
-      # Keeping it in a repo variable means changing hosts never needs a code change.
+      #
+      # Default is derived from the Fly app name in fly.toml, so the common case needs no
+      # configuration at all. Set the repository variable RELAY_URL to override — useful if the
+      # relay ever moves somewhere that isn't Fly.
       - name: Point the client at the relay
         run: |
           set -euo pipefail
           RELAY_URL='${{ vars.RELAY_URL }}'
-          if [ -z "$RELAY_URL" ]; then
-            echo "::error::Repository variable RELAY_URL is not set (expected wss://<app>.fly.dev)."
-            exit 1
+
+          if [ -n "$RELAY_URL" ]; then
+            echo "Using RELAY_URL from repository variable."
+          else
+            APP=$(sed -n 's/^app[[:space:]]*=[[:space:]]*"\(.*\)".*/\1/p' fly.toml | head -1)
+            if [ -z "$APP" ]; then
+              echo "::error::No RELAY_URL variable and no app name found in fly.toml."
+              exit 1
+            fi
+            RELAY_URL="wss://${APP}.fly.dev"
+            echo "RELAY_URL variable not visible; derived from fly.toml instead."
           fi
+
+          echo "Relay URL: $RELAY_URL"
           sed -i "s|DEFAULT_PUBLIC_SERVER_URL := \".*\"|DEFAULT_PUBLIC_SERVER_URL := \"$RELAY_URL\"|" net/net.gd
           grep -n 'DEFAULT_PUBLIC_SERVER_URL :=' net/net.gd
 

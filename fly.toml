@@ -1,8 +1,9 @@
 # Fly app names are globally unique, and this becomes the hostname players connect to.
 # Change it before the first deploy, then set the repo variable RELAY_URL to wss://<app>.fly.dev.
 app = "truck-town"
-# Boston, to keep latency low at the table.
-primary_region = "bos"
+# Newark. Fly deprecated the Boston region; ewr is the closest remaining one, about 5-10 ms away,
+# which is immaterial next to the ~30 Hz replication rate.
+primary_region = "ewr"
 
 [build]
 dockerfile = "Dockerfile"

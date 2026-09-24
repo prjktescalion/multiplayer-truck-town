@@ -1,0 +1,134 @@
+name: Deploy
+
+# Builds both exports in CI, publishes the page to GitHub Pages, and deploys the relay to Fly.
+# Nothing here needs Godot or the 1.3 GB of export templates installed locally.
+#
+# Required repository settings:
+#   Settings > Pages > Source: GitHub Actions
+#   Settings > Secrets and variables > Actions > Variables:  RELAY_URL = wss://<your-app>.fly.dev
+#   Settings > Secrets and variables > Actions > Secrets:    FLY_API_TOKEN
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race each other; queue instead of cancelling a half-finished one.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: 4.7.1
+
+jobs:
+  build:
+    name: Export web and server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1.3 GB of templates, so caching them turns a ~3 minute download into seconds.
+      - name: Cache export templates
+        id: templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-templates-${{ env.GODOT_VERSION }}
+
+      - name: Install Godot
+        run: |
+          set -euo pipefail
+          BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          wget -q "$BASE/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q "Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          sudo chmod +x /usr/local/bin/godot
+          godot --version
+
+      - name: Install export templates
+        if: steps.templates.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          wget -q "$BASE/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q "Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates
+          # The directory name is matched literally against the engine version.
+          mv templates "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+
+      # The relay URL is compiled into the .pck, so it has to be set before the export.
+      # Keeping it in a repo variable means changing hosts never needs a code change.
+      - name: Point the client at the relay
+        run: |
+          set -euo pipefail
+          RELAY_URL='${{ vars.RELAY_URL }}'
+          if [ -z "$RELAY_URL" ]; then
+            echo "::error::Repository variable RELAY_URL is not set (expected wss://<app>.fly.dev)."
+            exit 1
+          fi
+          sed -i "s|DEFAULT_PUBLIC_SERVER_URL := \".*\"|DEFAULT_PUBLIC_SERVER_URL := \"$RELAY_URL\"|" net/net.gd
+          grep -n 'DEFAULT_PUBLIC_SERVER_URL :=' net/net.gd
+
+      # A fresh clone has no imported assets; exporting without this fails.
+      - name: Import assets
+        run: godot --headless --import --path .
+
+      - name: Export
+        run: |
+          set -euo pipefail
+          export GODOT=godot
+          ./scripts/build_web.sh
+          ./scripts/build_server.sh
+
+      - name: Upload page
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+      - name: Upload relay binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: server
+          path: build/server/
+          retention-days: 1
+
+  pages:
+    name: Publish page
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+  fly:
+    name: Deploy relay
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Dockerfile copies build/server/ rather than building Godot inside the image.
+      - uses: actions/download-artifact@v4
+        with:
+          name: server
+          path: build/server
+
+      - run: chmod +x build/server/truck-town-server
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

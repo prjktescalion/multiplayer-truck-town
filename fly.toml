@@ -1,3 +1,5 @@
+# Fly app names are globally unique, and this becomes the hostname players connect to.
+# Change it before the first deploy, then set the repo variable RELAY_URL to wss://<app>.fly.dev.
 app = "truck-town"
 # Boston, to keep latency low at the table.
 primary_region = "bos"
@@ -23,5 +25,6 @@ handlers = ["http"]
 
 [[vm]]
 size = "shared-cpu-1x"
-# The server relays transforms and simulates no physics, so this is generous.
-memory = "512mb"
+# The relay forwards transforms and simulates no physics, so the smallest tier is plenty.
+# This is also the cheapest configuration Fly offers, at roughly $2/month running continuously.
+memory = "256mb"

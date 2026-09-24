@@ -142,6 +142,9 @@ jobs:
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - run: flyctl deploy --remote-only
+      # --ha=false pins this to a single machine. Fly provisions two by default for availability,
+      # which is wrong here: the relay holds the player registry and spawned vehicles in memory,
+      # so a second machine is a second, invisible game world rather than a spare.
+      - run: flyctl deploy --remote-only --ha=false
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
